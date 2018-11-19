@@ -9,6 +9,10 @@
 
 a) 센서 on/off
 
+<div>
+  <img width="600" src="https://user-images.githubusercontent.com/41013930/48693816-fe552600-ec1d-11e8-80d4-3bddc7046770.PNG">
+</div>
+
 b) 센서 pwm제어
 
 c) 데이터 파일처리
