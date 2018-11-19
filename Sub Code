@@ -1,0 +1,319 @@
+// 혹시나 솔레노이드 밸브가 작동하지 않을 경우 스텝 모터를 이용하기 위한 sub code 입니다.
+#include <EEPROM.h>
+// blynk위한 헤더파일
+ #include <SoftwareSerial.h>
+ SoftwareSerial SwSerial(10,11);
+ #define BLYNK_PRINT SwSerial
+ #include <BlynkSimpleSerial.h>
+ #include <SPI.h>
+ #include <Ethernet.h>
+// #include <BlynkSimpleEthernet.h>
+ // blynk위한 헤더파일
+ #include "GravityTDS.h" // tds 센서
+ #include <Stepper.h> // stepper motor
+ #include <DS1302.h> // rtc
+ #include <Wire.h>
+ #include "DHT.h" // 온습도 센서
+ #include <Adafruit_Sensor.h>
+ #include <Stepper.h> // 스텝모터
+ #define STEPSperRevolution 1024 // 스텝 모터 회전각 180도
+ #define STEPS 1024 // 스텝 값
+ #define Baudrate 9600 // 통신속도
+ #define WATER 0 // The pin of the water_sensor
+ #define ON 1
+ #define OFF 0
+ #define temp_err 45 // 온도 한계치 45도
+ #define water_err 400 // 수위 한계치 400
+ #define tds_err 50 // tds 한계치 50ppm
+ #define sunlight 28 // 식물 led 핀 28
+ #define TdsSensorPin A1 // tds 센서 핀 A1
+ 
+ 
+char auth[] = "674a225fcae7450b9b23516ee1e07fe2"; //blynk token 값
+int RPM, REF_Water, REF_Temp, REF_Time, REF_Tds; // 환경 설정 값
+int val_water, changedtime; // 수위 센서 값, rtc 시간 측정 값 저장 변수
+int Water_level = 50; // 수위 레벨 센서 스위치 디지털 핀 50번으로 설정
+int int_ledPin1 = 12; // error interrupt 위한 led pin
+int int_ledPin2 = 13; // actuator interrupt 위한 led pin
+float temperature, humidity; // 온습도 센서 값 저장 변수
+float tdsValue = 0; // tds 센서 값 저장 변수
+const int tempPin = 53; // temperature 모듈 수행 위한 pin
+const byte interruptPin1 = 2; //interruptpin1 디지털 2번 설정
+const byte interruptPin2 = 3; //interruptpin2 디지털 3번 설정
+const byte interruptPin3 = 21; //interruptpin3 디지털 21번 설정
+byte flag = OFF; // 모터 반복 수행 제어하기 위한 flag 변수
+byte flag2 = OFF; // 팬 반복 수행 제어하기 위한 flag 변수
+byte flag3 = OFF; // tds에 따른 모터 반복 수행 제어하기 위한 flag 변수
+byte water_state = LOW; // water 인터럽트 수행위한 state 변수
+byte temp_state = LOW; // temp 인터럽트 수행위한 state 변수
+byte tds_state = LOW; // tds 인터럽트 수행위한 state 변수
+volatile int flag_motor = OFF; // stepper motor 인터럽트 flag 변수
+volatile int flag_motor_tds = OFF; // tds에 따른 stepper motor 인터럽트 flag 변수
+volatile int flag_fan = 0; // fan motor 인터럽트 flag 변수
+const int trigPin = 18;    //Trig 핀 할당
+const int echoPin = 19;    //Echo 핀 할당
+const int LEDPin=20; //초음파센서 LED
+unsigned long duration, distance;    //초음파 센서 기본 변수 선언
+
+Stepper myStepper1(STEPSperRevolution,40, 36, 38, 34); // 스텝모터1 in4, in2, in3, in1
+Stepper myStepper2(STEPSperRevolution,41, 37, 39, 35); // 스텝모터2 in4, in2, in3, in1
+GravityTDS gravityTds;
+DHT dht(tempPin, DHT11);
+DS1302 rtc(22,23,24);
+
+ void setup()
+{
+    SwSerial.begin(9600); // blynk 통신속도
+    Blynk.begin(auth); // blynk 시작
+    save_setting();
+    open_setting(); // setting값 불러오기
+    gravityTds.setPin(TdsSensorPin);
+    gravityTds.setAref(5.0); // reference voltage on ADC, default 5.0V on Arduino MEGA
+    gravityTds.setAdcRange(1024); // 1024 for 10bit ADC; 4096 for 12bit ADC
+    gravityTds.begin(); // initialization
+    myStepper1.setSpeed(30); // 스텝 모터 속도
+    myStepper2.setSpeed(30); // 스텝 모터 속도
+    pinMode(Water_level, INPUT); // 수위 레벨 센서 스위치 핀
+    pinMode(int_ledPin1, OUTPUT); // actuator 인터럽트 발생시 led 점등위한 led 핀 out 설정
+    pinMode(int_ledPin2, OUTPUT); // error 인터럽트 발생시 led 점등위한 led 핀 out 설정
+    pinMode(sunlight, OUTPUT); // 식물 led 핀
+    pinMode(interruptPin1, INPUT); // water interruptPin
+    pinMode(interruptPin2, INPUT); // temp interruptPin
+    pinMode(5, OUTPUT); // water interrupt switch
+    pinMode(52, OUTPUT); // 쿨링 팬 핀
+    pinMode(7, OUTPUT); // temp interrupt switch
+    pinMode(8, OUTPUT); // 솔레노이드 밸브 핀1(물 수위 조절)
+    pinMode(9, OUTPUT); // 솔레노이드 밸브 핀2(양액 농도 조절)
+    pinMode(30, OUTPUT); // tds interrupt switch
+    pinMode(trigPin, OUTPUT); //초음파센서 Trig 핀 output으로 세팅
+    pinMode(echoPin, INPUT);  //초음파센서 Echo 핀 input으로 세팅
+    pinMode(LEDPin, OUTPUT);  //초음파센서 LED 핀
+    digitalWrite(5, LOW);
+    digitalWrite(7, LOW);
+    digitalWrite(30, LOW);
+    digitalWrite(int_ledPin1, LOW);
+    digitalWrite(int_ledPin2, LOW);
+    attachInterrupt(digitalPinToInterrupt(interruptPin1), stepp, CHANGE); // stepp 인터럽트 on
+    attachInterrupt(digitalPinToInterrupt(interruptPin2), temp, CHANGE); // temp 인터럽트 on
+    attachInterrupt(digitalPinToInterrupt(interruptPin3), tds, CHANGE); // tds 인터럽트 on
+    //Serial.begin(Baudrate);
+    //Serial.println(RPM);
+    //Serial.println(REF_Water);
+    //Serial.println(REF_Temp);
+    //Serial.println(REF_Time);
+    //Serial.println(REF_Tds);
+}
+ void loop()
+{
+    Blynk.run();
+    digitalWrite(int_ledPin1, LOW);
+    check_time();
+    check_waterlevel();    
+    digitalWrite(int_ledPin2, LOW);
+    check_temperature();
+    digitalWrite(int_ledPin2, LOW);
+    check_tds();
+    digitalWrite(int_ledPin2, LOW);
+    check_sensing_human();
+}
+ BLYNK_WRITE(5)
+{
+  REF_Temp = param[0].asInt();
+  EEPROM.write(2, REF_Temp);
+}
+ void check_waterlevel()
+{
+    //Serial.println(Water_level);
+    //val_water = analogRead(WATER);
+    Blynk.virtualWrite(4, val_water);
+   // Serial.println(val_water);
+    delay(1000);
+    if(flag == OFF && (Water_level == LOW) )
+       {
+          digitalWrite(int_ledPin2, HIGH);
+          water_state = !water_state;
+          digitalWrite(5, water_state);
+          flag = ON;
+      }
+    else if (flag == ON && val_water >= REF_Water && (Water_level == HIGH) && val_water < water_err)
+      {
+          digitalWrite(int_ledPin2, HIGH);
+          water_state = !water_state;
+          digitalWrite(5, water_state);
+          flag = OFF;
+      }
+    else if (val_water > water_err)
+    {
+          //Serial.println("water err");
+          error();
+    }
+      if(flag_motor == ON)
+        {
+          act_motor();
+        }
+}
+ void check_temperature()
+{
+    temperature = dht.readTemperature();
+    Blynk.virtualWrite(1, temperature);
+    humidity = dht.readHumidity();
+    Blynk.virtualWrite(2, humidity);
+    delay(1000);
+     if(temperature > temp_err)
+    {
+      //Serial.println("temp err");
+      error();
+    }
+    else if(flag2 == OFF && temperature > REF_Temp) 
+    {
+      digitalWrite(int_ledPin2, HIGH);
+      temp_state = !temp_state;
+      digitalWrite(7, temp_state);
+      flag2 = ON;
+    }
+    else if (flag2 == ON && temperature < REF_Temp)
+    {
+      digitalWrite(int_ledPin2, HIGH);
+      temp_state = !temp_state;
+      digitalWrite(7, temp_state);
+      flag2 = OFF;
+    }
+   if(flag_fan == ON)
+    {
+      act_fan();
+    }
+ }
+ void check_tds()
+{
+    temperature = dht.readTemperature();
+    gravityTds.setTemperature(temperature);
+    gravityTds.update(); // sample and calculate
+    //tdsValue = gravityTds.getTdsValue();
+    tdsValue = 10;
+    delay(1000);
+    //Serial.println(tdsValue);
+     if(flag3 == OFF && tdsValue < REF_Tds)
+      {
+        digitalWrite(int_ledPin2, HIGH);
+        tds_state = !tds_state;
+        digitalWrite(30, tds_state);
+        flag3 = ON;
+      }
+    else if(flag3 == ON && tdsValue >= REF_Tds && tdsValue < tds_err)
+      {
+        digitalWrite(int_ledPin2, HIGH);
+        tds_state = !tds_state;
+        digitalWrite(30, tds_state);
+        flag3 = OFF;
+      }
+    else if(tdsValue > tds_err)
+    {
+      //Serial.println("tds err");
+      error();
+    }
+    if(flag_motor_tds == ON)
+      {
+        act_motor_tds();
+      }  
+}
+ void check_sensing_human()
+{
+    //Trig 핀으로 10us의 pulse 발생
+    digitalWrite(trigPin, LOW);        //Trig 핀 Low
+    delayMicroseconds(2);            //2us 유지
+    digitalWrite(trigPin, HIGH);    //Trig 핀 High
+    delayMicroseconds(10);            //10us 유지
+    digitalWrite(trigPin, LOW);        //Trig 핀 Low
+ 
+    //Echo 핀으로 들어오는 펄스의 시간 측정
+    duration = pulseIn(echoPin, HIGH);        //pulseIn함수가 호출되고 펄스가 입력될 때까지의 시간. us단위로 값을 리턴.
+ 
+    //음파가 반사된 시간을 거리로 환산
+    //음파의 속도는 340m/s 이므로 1cm를 이동하는데 약 29us.
+    //따라서, 음파의 이동거리 = 왕복시간 / 1cm 이동 시간 / 2 이다.
+    distance=duration/58;        //센치미터로 환산
+    act_LED();
+   // Serial.print(distance);
+    //Serial.print("cm");
+    //Serial.println();
+}
+ void act_motor(){
+  if( Water_level == LOW )
+    {
+      myStepper1.step(STEPS); //REF_Water 보다 낮으면 밸브를 연다.
+    }
+  else if ( Water_level == HIGH && val_water >= REF_Water )
+    {
+      myStepper1.step(-STEPS); //REF_water 보다 높거나 같으면 밸브를 잠근다.
+    }
+   flag_motor = OFF;
+}
+ void act_motor_tds(){
+  if(tdsValue < REF_Tds)
+    {
+      myStepper2.step(STEPS); // REF_tds 보다 낮으면 양액 밸브를 연다.
+    }
+  else
+    {
+      myStepper2.step(-STEPS); // REF_tds 보다 높거나 같으면 밸브를 잠근다.
+    }
+   flag_motor_tds = OFF;
+}
+ void act_fan(){
+  if(temperature >= REF_Temp)
+    digitalWrite(52, HIGH); // 팬 작동하도록 코드 짜야함.
+  else
+    digitalWrite(52, LOW);
+  flag_fan = OFF;
+}
+ void check_time(){
+  if(atoi(rtc.getTimeStr())<REF_Time)
+  digitalWrite(sunlight, HIGH);
+  else
+  digitalWrite(sunlight, LOW);
+}
+ void open_setting()
+{
+    RPM = EEPROM.read(0);
+    REF_Water = EEPROM.read(1);
+    REF_Temp = EEPROM.read(2);
+    REF_Time = EEPROM.read(3);
+    REF_Tds = EEPROM.read(4);
+}
+ void save_setting()
+{
+  int a[5] = {120, 70, 35, 13, 15};
+  for(int i =0; i<5; i++)
+  {
+    EEPROM.write(i,a[i]);
+  }
+}
+void act_LED(){
+  if(distance <= 30){
+  digitalWrite(LEDPin,HIGH);
+  }
+  else{ 
+  digitalWrite(LEDPin,LOW);
+  }
+  delay(100);
+}
+ //interrupt 함수
+ void error(){
+  //Serial.println("error");
+  digitalWrite(int_ledPin1, HIGH);
+  EIFR |=(1<<INTF0);
+  EIFR |=(1<<INTF1);
+  while(1);
+}
+ void stepp(){
+  //Serial.println("step interrupt on");
+  flag_motor = ON;
+}
+ void temp(){
+  //Serial.println("temp interrupt on");
+  flag_fan = ON;
+}
+ void tds(){
+  //Serial.println("tds interrupt on");
+  flag_motor_tds = ON;
+}
