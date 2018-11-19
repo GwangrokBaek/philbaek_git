@@ -54,6 +54,12 @@ b) startMotor
 
 * tip : pwm이 낮을수록 정확도가 더욱 높아집니다.
 
+<div>
+  <img width="600" src="https://user-images.githubusercontent.com/41013930/48694856-df0bc800-ec20-11e8-8819-18d1533001e1.PNG">
+  <img width="600" src="https://user-images.githubusercontent.com/41013930/48694901-f77be280-ec20-11e8-9d9f-8ca6f6520316.PNG">
+</div>
+
+
 2. SMART FARM
 
 아두이노 메가와 여러 센서들을 복합적으로 이용해 자동제어를 구현했습니다. 하드웨어 뿐만 아니라, 오픈소스인 blynk를 이용해 어플리케이션 또한
