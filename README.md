@@ -76,4 +76,4 @@ b) startMotor
 
 기존에 배포되어있는 라이브러리 함수를 수정하거나 그대로 이용하였습니다.
 
-[YouTube](youtu.be/vBnJ27TyIt0)
+[YouTube](https://youtu.be/vBnJ27TyIt0)
