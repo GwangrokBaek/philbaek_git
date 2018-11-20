@@ -76,4 +76,34 @@ b) startMotor
 
 기존에 배포되어있는 라이브러리 함수를 수정하거나 그대로 이용하였습니다.
 
+* 키트 동작영상 YouTube 링크
 [YouTube](https://youtu.be/vBnJ27TyIt0)
+
+a) blynk 인터럽트
+<div>
+  <img width="600" src="https://user-images.githubusercontent.com/41013930/48758548-ba2c5900-ece3-11e8-87f0-661c87ddb6fd.PNG">
+</div>
+
+blynk 어플리케이션에서 신호 감지시, 아두이노 MEGA의 EEPROM에 받은 값을 저장합니다.
+
+* 이때, EEPROM의 0번지는
+
+b) 레지스트리 비트를 이용한 error 코드 처리
+<div>
+  <img width="600" src="https://user-images.githubusercontent.com/41013930/48758933-f57b5780-ece4-11e8-92c5-e972f89802f2.PNG">
+</div>
+
+자동제어 오동작시, 센서에서 이를 파악해 beep음과 함게 error인터럽트가 발생됩니다. 이때 polling으로 모든 액츄에이터들을 동작 해제하고
+interrupt flag 0번과 interrupt flag 1번 비트를 동작 해제하여 더 이상 인터럽트가 발생하지 못하도록 합니다.
+
+* 에러코드로 진입시 무한대기상태가 됩니다. 따라서 하드웨어적으로 reset을 해주어야 합니다.
+
+c) 인터럽트 함수 이용
+<div>
+  <img width="600" src="https://user-images.githubusercontent.com/41013930/48759121-82261580-ece5-11e8-8724-7a7fb4d1b412.PNG">
+</div>
+
+라이브러리함수를 이용해 인터럽트 함수를 구현해줍니다.
+아두이노는 소프트웨어 인터럽트를 지원하지 않는데, 이는 하드웨어적으로 연결하여 스위치 인터럽트를 소프트웨어 인터럽트처럼 사용합니다.
+
+* 즉, 인터럽트 핀과 디지털 핀을 도선으로 연결해주어 디지털 핀에서 값 변화시(low -> high or high -> low), 자동으로 인터럽트가 change mode에서 발생되도록 구현합니다.
