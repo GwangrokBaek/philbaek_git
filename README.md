@@ -81,7 +81,7 @@ b) startMotor
 
 a) blynk 인터럽트
 <div>
-  <img width="600" src="https://user-images.githubusercontent.com/41013930/48758548-ba2c5900-ece3-11e8-87f0-661c87ddb6fd.PNG">
+  <img width="300" src="https://user-images.githubusercontent.com/41013930/48758548-ba2c5900-ece3-11e8-87f0-661c87ddb6fd.PNG">
 </div>
 
 blynk 어플리케이션에서 신호 감지시, 아두이노 MEGA의 EEPROM에 받은 값을 저장합니다.
@@ -90,7 +90,7 @@ blynk 어플리케이션에서 신호 감지시, 아두이노 MEGA의 EEPROM에 
 
 b) 레지스트리 비트를 이용한 error 코드 처리
 <div>
-  <img width="400" src="https://user-images.githubusercontent.com/41013930/48758933-f57b5780-ece4-11e8-92c5-e972f89802f2.PNG">
+  <img width="300" src="https://user-images.githubusercontent.com/41013930/48758933-f57b5780-ece4-11e8-92c5-e972f89802f2.PNG">
 </div>
 
 자동제어 오동작시, 센서에서 이를 파악해 beep음과 함게 error인터럽트가 발생됩니다. 이때 polling으로 모든 액츄에이터들을 동작 해제하고
@@ -100,7 +100,7 @@ interrupt flag 0번과 interrupt flag 1번 비트를 동작 해제하여 더 이
 
 c) 인터럽트 함수 이용
 <div>
-  <img width="400" src="https://user-images.githubusercontent.com/41013930/48759121-82261580-ece5-11e8-8724-7a7fb4d1b412.PNG">
+  <img width="600" src="https://user-images.githubusercontent.com/41013930/48759121-82261580-ece5-11e8-8724-7a7fb4d1b412.PNG">
 </div>
 
 라이브러리함수를 이용해 인터럽트 함수를 구현해줍니다.
