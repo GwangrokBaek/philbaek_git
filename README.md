@@ -2,7 +2,7 @@
 # RPLIDAR A2의 코드 경우, SLAMTEC사에서 제공하는 SDK를 연구실의 목적에 맞게 수정하고 있습니다.
 # SMART FARM의 경우, 교내 SW융합 해커톤 대회에서 스마트팜을 주제로 코드를 작성하였습니다.
 
-1. RPLIDAR A2
+# 1. RPLIDAR A2
 <div>
   <img width="400" src="https://user-images.githubusercontent.com/41013930/48757551-7c7a0100-ece0-11e8-8e9f-c457b0ea3851.jpg">
 </div>
@@ -64,7 +64,7 @@ b) startMotor
 </div>
 
 
-2. SMART FARM
+# 2. SMART FARM
 
 <div>
   <img width="400" src="https://user-images.githubusercontent.com/41013930/48757582-97e50c00-ece0-11e8-948e-1d72d1f01f71.jpg">
@@ -75,3 +75,5 @@ b) startMotor
 구현했습니다. 하지만, 와이파이 통신이 아닌 serial 통신 코드만 구현해두었습니다.
 
 기존에 배포되어있는 라이브러리 함수를 수정하거나 그대로 이용하였습니다.
+
+[YouTube](youtu.be/vBnJ27TyIt0)
