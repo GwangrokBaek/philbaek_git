@@ -3,6 +3,10 @@
 # SMART FARM의 경우, 교내 SW융합 해커톤 대회에서 스마트팜을 주제로 코드를 작성하였습니다.
 
 1. RPLIDAR A2
+<div>
+  <img width="400" src="https://user-images.githubusercontent.com/41013930/48757551-7c7a0100-ece0-11e8-8e9f-c457b0ea3851.jpg">
+</div>
+
 
 기존 RPLIDAR A2에서 제공하는 Ultra_simple 코드는 단순히 약 600rpm으로 회전을 하고 데이터를 cmd창에 표시만 할 뿐이었습니다.
 이를 연구실의 목적에 맞게 센서를 제어할 수 있기 위해서 다음과 같은 기능을 추가하였습니다.
@@ -61,6 +65,11 @@ b) startMotor
 
 
 2. SMART FARM
+
+<div>
+  <img width="400" src="https://user-images.githubusercontent.com/41013930/48757582-97e50c00-ece0-11e8-948e-1d72d1f01f71.jpg">
+  <img width="400" src="https://user-images.githubusercontent.com/41013930/48757609-acc19f80-ece0-11e8-932d-318dbdb1b25c.jpg">
+</div>
 
 아두이노 메가와 여러 센서들을 복합적으로 이용해 자동제어를 구현했습니다. 하드웨어 뿐만 아니라, 오픈소스인 blynk를 이용해 어플리케이션 또한
 구현했습니다. 하지만, 와이파이 통신이 아닌 serial 통신 코드만 구현해두었습니다.
